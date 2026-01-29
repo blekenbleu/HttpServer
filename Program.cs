@@ -10,26 +10,17 @@ using System.Threading;
 // https://github.com/Peteri-git/simple-HttpServer/tree/master
 namespace HttpServer
 {
+
 	internal class Program
 	{
-		delegate void SimpleDelegate();
-		static readonly Dictionary<string, SimpleDelegate> dic = new Dictionary<string, SimpleDelegate>();
+		static StreamWriter sw;
 		static string path;
 		static void Main(/*string[] args*/)
 		{
-			// Console.WriteLine("Zadejte IP");
-			string ip = "127.0.0.1"; //  Console.ReadLine();
-			// Console.WriteLine("Zadejte Port");
-			string port = "7734";  Console.ReadLine();
-			// Console.WriteLine("Zadej cestu k složce");
-			path = "R:\\Temp";   // Console.ReadLine();
+			string ip = "127.0.0.1";
+			string port = "7734";
+			path = "R:\\Temp";
 			Console.WriteLine(ip+":"+port+" for "+path+" files\n");
-/*
-			dic.Add("/On", new SimpleDelegate(On));
-			dic.Add("/Blinking", Blinking);
-			dic.Add("/Off", new SimpleDelegate(Off));
-			dic.Add("/Switch", new SimpleDelegate(Switch));
- */
 			TcpListener server = new TcpListener(IPAddress.Parse(ip), Convert.ToInt32(port));
 			server.Start();
 			while (true)
@@ -40,6 +31,39 @@ namespace HttpServer
 			}
 		}
 
+		static string MimeType(string line)
+		{
+			string type = "text/*";
+			foreach (var item in MimeTypes._mappings)
+				if (line.EndsWith(item.Key))
+				{
+					type = item.Value;
+					break;
+				}
+			return type;
+		}
+
+		static void SwWrite(string foo)
+		{
+			string poo;
+									
+			if (File.Exists(poo = path + "\\" + foo))
+			{
+				Console.WriteLine(poo+"\n"+$"Content-Type:{MimeType(foo)}; charset=utf-8");
+				sw.WriteLine("HTTP/1.1 200 OK");
+				sw.WriteLine($"Content-Type:{MimeType(foo)}; charset=utf-8");
+				sw.WriteLine();
+				byte[] file = File.ReadAllBytes(poo);
+				sw.BaseStream.Write(file, 0, file.Length);
+				sw.BaseStream.Flush();
+			}
+			else
+			{
+				Console.WriteLine(poo + " not found");
+				sw.WriteLine("HTTP/1.1 404 NOT FOUND");
+			}
+		}
+
 		static void Process(object param)
 		{
 			try
@@ -47,28 +71,30 @@ namespace HttpServer
 				var client = (TcpClient)param;
 				var stream = client.GetStream();
 				var sr = new StreamReader(stream);
-				var sw = new StreamWriter(stream, Encoding.UTF8);
+				sw = new StreamWriter(stream, Encoding.UTF8);
 
-				string[] actionLine = sr.ReadLine()?.Split(new char[] { ' ' }, 3);
+				string first = sr.ReadLine();
+				Console.WriteLine(first);
+				string[] actionLine = first?.Split(new char[] { ' ' }, 3);
 				int contentLength = 0;
 				while (true)
 				{
 					string line = sr.ReadLine();
 					string[] headLine = line?.Split(new char[] { ':' }, 2);
-					if (headLine[0] == "Content-Length")
-					{
+					if (null != headLine && headLine[0] == "Content-Length")
 						contentLength = int.Parse(headLine[1].Trim());
-					}
-					Console.WriteLine(line);
+
+//					Console.WriteLine(line);
 					if (string.IsNullOrWhiteSpace(line))
 						break;
 				}
 				string[] filePaths = Directory.GetFiles(path);
-				if (actionLine[0] == "POST")
+
+				if (null != actionLine && actionLine[0] == "POST")
 				{
 					char[] postData = new char[contentLength];
 					sr.Read(postData, 0, contentLength);
-					Console.WriteLine(new string(postData));
+//					Console.WriteLine(new string(postData));
 					string tmp = new string(postData);
 					string[] input = tmp.Split('=');
 					List<string> files = new List<string>();
@@ -78,76 +104,14 @@ namespace HttpServer
 						files.Add(items.Last());
 					}
 					foreach (var file in files)
-					{
 						if (input[1] == file)
-						{
-							foreach (var item in MimeTypes._mappings)
-							{
-								if (file.EndsWith(item.Key))
-								{
-									if (File.Exists(path + "\\" + file.ToString()))
-									{
-										sw.WriteLine("HTTP/1.1 200 OK");
-										sw.WriteLine($"Content-Type:{item.Value}; charset=utf-8");
-										sw.WriteLine();
-										byte[] filee = File.ReadAllBytes(path + "\\" + file.ToString());
-										sw.BaseStream.Write(filee, 0, filee.Length);
-										sw.BaseStream.Flush();
-									}
-									else
-									{
-										sw.WriteLine("HTTP/1.1 404 NOT FOUND");
-										sw.WriteLine();
-									}
-								}
-							}
-						}
-					}
-					sw.Flush();
-					client.Close();
-				}
-				/*				foreach (var fgt in dic)
-								{
-									if (actionLine[1] == fgt.Key)
-									{
-										SimpleDelegate tmp = fgt.Value;
-										tmp();
-									}
-								}
-								var test = actionLine[1].Split('/');
-								if (test[1] == "jas")
-								{
-									bulb.Brightness = Convert.ToInt32(test[2]);
-								}
-*/
-								if (actionLine[1] == "/Menu" || actionLine[1] == "/")
-				
-				{
-					Menu(sw, filePaths);
-				} else
-						/*
-										foreach (var item in MimeTypes._mappings)
-										{
-											if (actionLine[1].EndsWith(item.Key))
-											{
-						 */
-						if (File.Exists(path + actionLine[1].ToString()))
-				{
-					sw.WriteLine("HTTP/1.1 200 OK");
-					sw.WriteLine($"Content-Type:text/html; charset=utf-8");
-					sw.WriteLine();
-					byte[] file = File.ReadAllBytes(path + actionLine[1].ToString());
-					sw.BaseStream.Write(file, 0, file.Length);
-					sw.BaseStream.Flush();
-				}
-				else
-				{
-					sw.WriteLine("HTTP/1.1 404 NOT FOUND");
-					sw.WriteLine();
-				}
+							SwWrite(file.ToString());
 
-//					}
-//				}
+				}
+				else if (actionLine[1] == "/Menu" || actionLine[1] == "/")
+					Menu(sw, filePaths);
+				else SwWrite(actionLine[1].ToString());
+				sw.WriteLine("\n");
 				sw.Flush();
 				client.Close();
 			}
