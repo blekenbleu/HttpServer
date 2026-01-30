@@ -49,12 +49,19 @@ namespace HttpServer
 									
 			if (File.Exists(poo = path + "\\" + foo))
 			{
-				Console.WriteLine(poo+"\n"+$"Content-Type:{MimeType(foo)}; charset=utf-8");
+				string type = MimeType(foo);
+				Console.WriteLine(poo + "\n");
 				sw.WriteLine("HTTP/1.1 200 OK");
-				sw.WriteLine($"Content-Type:{MimeType(foo)}; charset=utf-8");
-				sw.WriteLine();
+				Console.WriteLine("HTTP/1.1 200 OK");
 				byte[] file = File.ReadAllBytes(poo);
+				sw.WriteLine($"Content-Length: {file.Length}");
+				Console.WriteLine($"Content-Length: {file.Length}");
+				sw.WriteLine($"Content-Type: {type}; charset=UTF-8");
+				Console.WriteLine($"Content-Type: {type}; charset=UTF-8");
+				sw.WriteLine();
+				Console.WriteLine();
 				sw.BaseStream.Write(file, 0, file.Length);
+				Console.WriteLine("{poo}, 0, {file.Length}");
 				sw.BaseStream.Flush();
 			}
 			else
@@ -124,7 +131,7 @@ namespace HttpServer
 		static void Menu(StreamWriter sw, string[] files)
 		{
 			sw.WriteLine("HTTP/1.1 200 OK");
-			sw.WriteLine($"Content-Type:text/html; charset=utf-8");
+			sw.WriteLine($"Content-Type:text/html; charset=UTF-8");
 			sw.WriteLine();
 			sw.WriteLine("<html>");
 			sw.WriteLine("<head>");

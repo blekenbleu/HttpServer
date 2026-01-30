@@ -2,3 +2,4 @@
  &emsp; *from [simple-HttpServer](https://github.com/Peteri-git/simple-HttpServer)*  
 - .NET Framework 4.8
 - Menu works, but not files
+- [**HTTP - Responses**](https://www.tutorialspoint.com/http/http_responses.htm)
