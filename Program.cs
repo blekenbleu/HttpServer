@@ -43,31 +43,37 @@ namespace HttpServer
 			return type;
 		}
 
+		static void W(string s)
+		{
+			Console.WriteLine("\t"+s);
+			sw.WriteLine(s);
+		}
+
+		static void W()
+		{
+			W("");
+		}
+
 		static void SwWrite(string foo)
 		{
 			string poo;
 									
 			if (File.Exists(poo = path + "\\" + foo))
 			{
-				string type = MimeType(foo);
-				Console.WriteLine(poo + "\n");
-				sw.WriteLine("HTTP/1.1 200 OK");
-				Console.WriteLine("HTTP/1.1 200 OK");
-				byte[] file = File.ReadAllBytes(poo);
-				sw.WriteLine($"Content-Length: {file.Length}");
-				Console.WriteLine($"Content-Length: {file.Length}");
-				sw.WriteLine($"Content-Type: {type}; charset=UTF-8");
-				Console.WriteLine($"Content-Type: {type}; charset=UTF-8");
-				sw.WriteLine();
-				Console.WriteLine();
-				sw.BaseStream.Write(file, 0, file.Length);
-				Console.WriteLine("{poo}, 0, {file.Length}");
-				sw.BaseStream.Flush();
+				string line, type = MimeType(foo);
+				W("HTTP/1.1 200 OK");
+				using (var fr = new StreamReader(poo))
+				{
+					W($"Content-Length: {(int)fr.BaseStream.Length}");
+					W($"Content-Type: {type}; charset=UTF-8");
+					W();
+					while ((line = fr.ReadLine()) != null)
+						W(line);
+				}
 			}
 			else
 			{
-				Console.WriteLine(poo + " not found");
-				sw.WriteLine("HTTP/1.1 404 NOT FOUND");
+				W("HTTP/1.1 404 NOT FOUND");
 			}
 		}
 
@@ -81,27 +87,27 @@ namespace HttpServer
 				sw = new StreamWriter(stream, Encoding.UTF8);
 
 				string first = sr.ReadLine();
-				Console.WriteLine(first);
+				Console.WriteLine("first: " + first);
 				string[] actionLine = first?.Split(new char[] { ' ' }, 3);
 				int contentLength = 0;
 				while (true)
 				{
 					string line = sr.ReadLine();
+					if (string.IsNullOrWhiteSpace(line))
+						break;
+
 					string[] headLine = line?.Split(new char[] { ':' }, 2);
 					if (null != headLine && headLine[0] == "Content-Length")
 						contentLength = int.Parse(headLine[1].Trim());
-
-//					Console.WriteLine(line);
-					if (string.IsNullOrWhiteSpace(line))
-						break;
 				}
 				string[] filePaths = Directory.GetFiles(path);
 
-				if (null != actionLine && actionLine[0] == "POST")
+				if (null == actionLine || actionLine[1] == "/Menu" || actionLine[1] == "/")
+					Menu(filePaths);
+				else if (actionLine[0] == "POST")
 				{
 					char[] postData = new char[contentLength];
 					sr.Read(postData, 0, contentLength);
-//					Console.WriteLine(new string(postData));
 					string tmp = new string(postData);
 					string[] input = tmp.Split('=');
 					List<string> files = new List<string>();
@@ -115,10 +121,8 @@ namespace HttpServer
 							SwWrite(file.ToString());
 
 				}
-				else if (actionLine[1] == "/Menu" || actionLine[1] == "/")
-					Menu(sw, filePaths);
 				else SwWrite(actionLine[1].ToString());
-				sw.WriteLine("\n");
+				W();
 				sw.Flush();
 				client.Close();
 			}
@@ -128,28 +132,28 @@ namespace HttpServer
 			}
 		}
 
-		static void Menu(StreamWriter sw, string[] files)
+		static void Menu(string[] files)
 		{
-			sw.WriteLine("HTTP/1.1 200 OK");
-			sw.WriteLine($"Content-Type:text/html; charset=UTF-8");
-			sw.WriteLine();
-			sw.WriteLine("<html>");
-			sw.WriteLine("<head>");
-			sw.WriteLine("</head>");
-			sw.WriteLine("<body><h2>HttpServer by TcpListener</h2>Enter filename from "+path);
-			sw.WriteLine("  <form action=\"/\" method=\"POST\">");
-			sw.WriteLine("   <input type=\"text\" name=\"something\" />");
-			sw.WriteLine("   <input type=\"submit\" value=\"send\" />");
-			sw.WriteLine("  </form>");
-			sw.WriteLine("<ul>");
+			W("HTTP/1.1 200 OK");
+			W($"Content-Type:text/html; charset=UTF-8");
+			W();
+			W("<html>");
+			W("<head>");
+			W("</head>");
+			W("<body><h2>HttpServer by TcpListener</h2>Enter filename from "+path);
+			W("  <form action=\"/\" method=\"POST\">");
+			W("   <input type=\"text\" name=\"something\" />");
+			W("   <input type=\"submit\" value=\"send\" />");
+			W("  </form>");
+			W("<ul>");
 			foreach (var item in files)
 			{
 				string[] tmp = item.Split('\\');
-				sw.WriteLine($"<li>{item}</li><a href=\"{tmp.Last()}\">Open</a>");
+				W($"<li>{item}</li><a href=\"{tmp.Last()}\">Open</a>");
 			}
-			sw.WriteLine("</ul>");
-			sw.WriteLine("</body>");
-			sw.WriteLine("</html>");
+			W("</ul>");
+			W("</body>");
+			W("</html>");
 		}
 	}
 }

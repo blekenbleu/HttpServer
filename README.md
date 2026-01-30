@@ -3,3 +3,4 @@
 - .NET Framework 4.8
 - Menu works, but not files
 - [**HTTP - Responses**](https://www.tutorialspoint.com/http/http_responses.htm)
+- [HTTP Response - w3.org](https://www.w3.org/Protocols/HTTP/Response.html)
