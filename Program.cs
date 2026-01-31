@@ -45,7 +45,7 @@ namespace HttpServer
 
 		static void W(string s)
 		{
-			Console.WriteLine("\t"+s);
+//			Console.WriteLine("\t"+s);
 			sw.WriteLine(s);
 		}
 
@@ -79,6 +79,8 @@ namespace HttpServer
 
 		static void Process(object param)
 		{
+			bool post = false;
+
 			try
 			{
 				var client = (TcpClient)param;
@@ -89,6 +91,8 @@ namespace HttpServer
 				string first = sr.ReadLine();
 				Console.WriteLine("first: " + first);
 				string[] actionLine = first?.Split(new char[] { ' ' }, 3);
+				if (null != actionLine && "POST" == actionLine[0])
+					post = true;
 				int contentLength = 0;
 				while (true)
 				{
@@ -96,19 +100,21 @@ namespace HttpServer
 					if (string.IsNullOrWhiteSpace(line))
 						break;
 
+//					if (post)
+//						Console.WriteLine(line);
 					string[] headLine = line?.Split(new char[] { ':' }, 2);
 					if (null != headLine && headLine[0] == "Content-Length")
 						contentLength = int.Parse(headLine[1].Trim());
 				}
 				string[] filePaths = Directory.GetFiles(path);
 
-				if (null == actionLine || actionLine[1] == "/Menu" || actionLine[1] == "/")
-					Menu(filePaths);
-				else if (actionLine[0] == "POST")
+				if (post)
 				{
+					post = false;
 					char[] postData = new char[contentLength];
 					sr.Read(postData, 0, contentLength);
 					string tmp = new string(postData);
+//					Console.WriteLine("postData = "+tmp);
 					string[] input = tmp.Split('=');
 					List<string> files = new List<string>();
 					foreach (var item in filePaths)
@@ -121,6 +127,8 @@ namespace HttpServer
 							SwWrite(file.ToString());
 
 				}
+				else if (null == actionLine || actionLine[1] == "/Menu" || actionLine[1] == "/")
+					Menu(filePaths);
 				else SwWrite(actionLine[1].ToString());
 				W();
 				sw.Flush();
